@@ -1,9 +1,11 @@
--- PS99 Spin Bot v2 by Yusuf Arda
-local running = false
-local Network = game:GetService("ReplicatedStorage"):WaitForChild("Network")
+-- PS99 Ultra Fast Spin (Animation Cancel Edition)
+-- Created by Yusuf Arda
 
--- [GUI KODU AYNI KALIYOR, SADECE MANTIK KISMINI GÜNCELLEDİM]
--- ... (Yukarıdaki GUI tasarımı kısmını buraya dahil edebilirsin) ...
+local Network = game:GetService("ReplicatedStorage"):WaitForChild("Network")
+local PlayerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+local running = false
+
+-- [GUI Tasarımı Buraya Gelecek - Senin Mevcut Menün]
 
 StartBtn.MouseButton1Click:Connect(function()
     running = not running
@@ -13,31 +15,38 @@ StartBtn.MouseButton1Click:Connect(function()
         
         task.spawn(function()
             while running do
-                Status.Text = "Komutlar gonderiliyor..."
+                -- 1. ADIM: ÇARKI ÇEVİR (SPIN)
+                pcall(function()
+                    Network:WaitForChild("SpinnyWheel_RequestSpin"):InvokeServer("Spinny Wheel")
+                end)
                 
-                -- PS99'un kullandığı tüm olası isimleri aynı anda deniyoruz
-                local remotes = {
-                    "SpinnyWheel_RequestSpin",
-                    "Spinny Wheel: Request Spin",
-                    "SpinnyWheel: Request Spin",
-                    "SpinnyWheel_Spin"
-                }
-                
-                for _, remoteName in pairs(remotes) do
-                    local remote = Network:FindFirstChild(remoteName)
-                    if remote then
+                -- 2. ADIM: ANİMASYONU İPTAL ET (Menüyü Kapatarak)
+                -- Çark menüsünü saniyesinde kapatır ki animasyon oynayamasın
+                task.spawn(function()
+                    local wheelGui = PlayerGui:FindFirstChild("SpinnyWheel")
+                    if wheelGui then
+                        -- Menüyü kapatma komutu (Çarpı tuşu işlevi)
+                        wheelGui.Enabled = false 
+                    end
+                end)
+
+                -- 3. ADIM: ÖDÜLÜ ONAYLA (OK BUTONU)
+                -- "Congratulations" ekranını saniyesinde geçer
+                task.spawn(function()
+                    task.wait(0.1) -- Sunucunun ödülü tanımlaması için çok kısa bir an
+                    local lootGui = PlayerGui:FindFirstChild("Lootview") or PlayerGui:FindFirstChild("Message")
+                    if lootGui then
                         pcall(function()
-                            if remote:IsA("RemoteFunction") then
-                                remote:InvokeServer("Spinny Wheel")
-                            else
-                                remote:FireServer("Spinny Wheel")
+                            -- Ok butonuna direkt sinyal gönderir
+                            if lootGui:FindFirstChild("Frame") and lootGui.Frame:FindFirstChild("Ok") then
+                                lootGui.Frame.Ok.MouseButton1Click:Fire()
                             end
                         end)
                     end
-                end
-                
-                Status.Text = "Döngü Aktif"
-                task.wait(2) -- Sunucudan atılmamak için güvenli süre
+                end)
+
+                Status.Text = "HIZLI CEVIRIM AKTIF!"
+                task.wait(0.3) -- Videodaki o seri hızı sağlayan bekleme süresi
             end
         end)
     else
