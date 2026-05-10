@@ -1,11 +1,22 @@
--- PS99 Ultra Fast Spin (Animation Cancel Edition)
--- Created by Yusuf Arda
-
+-- PS99 Ultra Fast Spin by Yusuf Arda
 local Network = game:GetService("ReplicatedStorage"):WaitForChild("Network")
 local PlayerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 local running = false
 
--- [GUI Tasarımı Buraya Gelecek - Senin Mevcut Menün]
+-- [GUI Tasarımı Buraya]
+-- ... (Senin mevcut menü kodun) ...
+
+-- DOĞRU KOMUTU BULAN FONKSİYON
+local function getSpinRemote()
+    -- En yaygın kullanılan isimleri tek tek denetler
+    local names = {"SpinnyWheel_RequestSpin", "Spinny Wheel: Request Spin", "SpinnyWheel: Request", "RequestSpin"}
+    for _, name in pairs(names) do
+        if Network:FindFirstChild(name) then
+            return Network[name]
+        end
+    end
+    return nil
+end
 
 StartBtn.MouseButton1Click:Connect(function()
     running = not running
@@ -15,38 +26,38 @@ StartBtn.MouseButton1Click:Connect(function()
         
         task.spawn(function()
             while running do
-                -- 1. ADIM: ÇARKI ÇEVİR (SPIN)
-                pcall(function()
-                    Network:WaitForChild("SpinnyWheel_RequestSpin"):InvokeServer("Spinny Wheel")
-                end)
+                local remote = getSpinRemote()
                 
-                -- 2. ADIM: ANİMASYONU İPTAL ET (Menüyü Kapatarak)
-                -- Çark menüsünü saniyesinde kapatır ki animasyon oynayamasın
-                task.spawn(function()
-                    local wheelGui = PlayerGui:FindFirstChild("SpinnyWheel")
-                    if wheelGui then
-                        -- Menüyü kapatma komutu (Çarpı tuşu işlevi)
-                        wheelGui.Enabled = false 
+                if remote then
+                    -- 1. ADIM: SPIN (Videonun başı)
+                    pcall(function()
+                        if remote:IsA("RemoteFunction") then
+                            remote:InvokeServer("Spinny Wheel")
+                        else
+                            remote:FireServer("Spinny Wheel")
+                        end
+                    end)
+                    
+                    -- 2. ADIM: MENÜYÜ KAPAT (Çarpıya basma animasyonu)
+                    for _, guiName in pairs({"SpinnyWheel", "SpinnyWheelGui", "WheelGui"}) do
+                        local gui = PlayerGui:FindFirstChild(guiName)
+                        if gui then gui.Enabled = false end
                     end
-                end)
 
-                -- 3. ADIM: ÖDÜLÜ ONAYLA (OK BUTONU)
-                -- "Congratulations" ekranını saniyesinde geçer
-                task.spawn(function()
-                    task.wait(0.1) -- Sunucunun ödülü tanımlaması için çok kısa bir an
-                    local lootGui = PlayerGui:FindFirstChild("Lootview") or PlayerGui:FindFirstChild("Message")
-                    if lootGui then
-                        pcall(function()
-                            -- Ok butonuna direkt sinyal gönderir
-                            if lootGui:FindFirstChild("Frame") and lootGui.Frame:FindFirstChild("Ok") then
-                                lootGui.Frame.Ok.MouseButton1Click:Fire()
-                            end
-                        end)
-                    end
-                end)
-
-                Status.Text = "HIZLI CEVIRIM AKTIF!"
-                task.wait(0.3) -- Videodaki o seri hızı sağlayan bekleme süresi
+                    -- 3. ADIM: OK BUTONUNA BAS (Congratulations ekranı)
+                    task.delay(0.1, function()
+                        local loot = PlayerGui:FindFirstChild("Lootview") or PlayerGui:FindFirstChild("Message")
+                        if loot and loot:FindFirstChild("Frame") and loot.Frame:FindFirstChild("Ok") then
+                            loot.Frame.Ok.MouseButton1Click:Fire()
+                        end
+                    end)
+                    
+                    Status.Text = "BASARILI!"
+                else
+                    Status.Text = "KOMUT BULUNAMADI!"
+                end
+                
+                task.wait(0.3) -- Videodaki ışık hızı
             end
         end)
     else
