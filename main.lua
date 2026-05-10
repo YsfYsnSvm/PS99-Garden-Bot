@@ -1,63 +1,83 @@
 -- PS99 Ultra Fast Spin by Yusuf Arda
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local Title = Instance.new("TextLabel")
+local StartBtn = Instance.new("TextButton")
+local Status = Instance.new("TextLabel")
+
+-- GUI'yi Roblox'a ekle
+ScreenGui.Parent = game:GetService("CoreGui")
+ScreenGui.Name = "YusufArda_SpinBot"
+
+-- Tasarım
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.Position = UDim2.new(0.5, -100, 0.5, -75)
+MainFrame.Size = UDim2.new(0, 200, 0, 150)
+MainFrame.Active = true
+MainFrame.Draggable = true
+
+Title.Parent = MainFrame
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.Text = "YUSUF ARDA SPIN BOT"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+
+Status.Parent = MainFrame
+Status.Position = UDim2.new(0, 0, 0.7, 0)
+Status.Size = UDim2.new(1, 0, 0, 30)
+Status.Text = "Sistem Hazir"
+Status.TextColor3 = Color3.fromRGB(200, 200, 200)
+Status.BackgroundTransparency = 1
+
+StartBtn.Parent = MainFrame
+StartBtn.Position = UDim2.new(0.1, 0, 0.35, 0)
+StartBtn.Size = UDim2.new(0.8, 0, 0.3, 0)
+StartBtn.Text = "CEVIRMEYE BASLA"
+StartBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+StartBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+-- LOGIC (MANTIK)
+local running = false
 local Network = game:GetService("ReplicatedStorage"):WaitForChild("Network")
 local PlayerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
-local running = false
-
--- [GUI Tasarımı Buraya]
--- ... (Senin mevcut menü kodun) ...
-
--- DOĞRU KOMUTU BULAN FONKSİYON
-local function getSpinRemote()
-    -- En yaygın kullanılan isimleri tek tek denetler
-    local names = {"SpinnyWheel_RequestSpin", "Spinny Wheel: Request Spin", "SpinnyWheel: Request", "RequestSpin"}
-    for _, name in pairs(names) do
-        if Network:FindFirstChild(name) then
-            return Network[name]
-        end
-    end
-    return nil
-end
 
 StartBtn.MouseButton1Click:Connect(function()
     running = not running
     if running then
         StartBtn.Text = "DURDUR"
         StartBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+        Status.Text = "Hizli Cevrim Aktif!"
         
         task.spawn(function()
             while running do
-                local remote = getSpinRemote()
+                -- 1. Çevir komutu gönder (Spin)
+                pcall(function()
+                    Network:WaitForChild("SpinnyWheel_RequestSpin"):InvokeServer("Spinny Wheel")
+                end)
                 
-                if remote then
-                    -- 1. ADIM: SPIN (Videonun başı)
-                    pcall(function()
-                        if remote:IsA("RemoteFunction") then
-                            remote:InvokeServer("Spinny Wheel")
-                        else
-                            remote:FireServer("Spinny Wheel")
-                        end
-                    end)
-                    
-                    -- 2. ADIM: MENÜYÜ KAPAT (Çarpıya basma animasyonu)
-                    for _, guiName in pairs({"SpinnyWheel", "SpinnyWheelGui", "WheelGui"}) do
-                        local gui = PlayerGui:FindFirstChild(guiName)
-                        if gui then gui.Enabled = false end
+                -- 2. Menüyü anında kapat (Videodaki gibi çarpıya basma etkisi)
+                task.spawn(function()
+                    local wheelGui = PlayerGui:FindFirstChild("SpinnyWheel") or PlayerGui:FindFirstChild("SpinnyWheelGui")
+                    if wheelGui then
+                        wheelGui.Enabled = false -- Menüyü yok ederek animasyonu iptal eder
                     end
-
-                    -- 3. ADIM: OK BUTONUNA BAS (Congratulations ekranı)
-                    task.delay(0.1, function()
+                end)
+                
+                -- 3. OK Butonuna bas (Congratulations ekranını geç)
+                task.spawn(function()
+                    for i = 1, 10 do -- Pencere gelene kadar kısa bir süre tara
                         local loot = PlayerGui:FindFirstChild("Lootview") or PlayerGui:FindFirstChild("Message")
                         if loot and loot:FindFirstChild("Frame") and loot.Frame:FindFirstChild("Ok") then
                             loot.Frame.Ok.MouseButton1Click:Fire()
+                            break
                         end
-                    end)
-                    
-                    Status.Text = "BASARILI!"
-                else
-                    Status.Text = "KOMUT BULUNAMADI!"
-                end
-                
-                task.wait(0.3) -- Videodaki ışık hızı
+                        task.wait(0.05)
+                    end
+                end)
+
+                task.wait(0.25) -- Videodaki o aşırı hızlı döngü süresi
             end
         end)
     else
