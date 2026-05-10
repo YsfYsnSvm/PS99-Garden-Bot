@@ -1,87 +1,85 @@
 -- PS99 Ultra Fast Spin by Yusuf Arda
+local player = game.Players.LocalPlayer
+local PlayerGui = player:WaitForChild("PlayerGui")
+local Network = game:GetService("ReplicatedStorage"):FindFirstChild("Network")
+
+-- Önceki GUI varsa sil (Çakışmasın)
+if PlayerGui:FindFirstChild("YusufArda_SpinBot") then
+    PlayerGui:FindFirstChild("YusufArda_SpinBot"):Destroy()
+end
+
+-- GUI OLUŞTURMA (En Garanti Yöntem)
 local ScreenGui = Instance.new("ScreenGui")
-local MainFrame = Instance.new("Frame")
-local Title = Instance.new("TextLabel")
-local StartBtn = Instance.new("TextButton")
-local Status = Instance.new("TextLabel")
-
--- GUI'yi Roblox'a ekle
-ScreenGui.Parent = game:GetService("CoreGui")
 ScreenGui.Name = "YusufArda_SpinBot"
+ScreenGui.Parent = PlayerGui -- CoreGui yerine direkt PlayerGui kullanarak hata riskini sıfırladık
+ScreenGui.ResetOnSpawn = false
 
--- Tasarım
-MainFrame.Name = "MainFrame"
-MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-MainFrame.Position = UDim2.new(0.5, -100, 0.5, -75)
+local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 200, 0, 150)
+MainFrame.Position = UDim2.new(0.5, -100, 0.4, -75)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.BorderSizePixel = 2
 MainFrame.Active = true
 MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
 
-Title.Parent = MainFrame
+local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 30)
-Title.Text = "YUSUF ARDA SPIN BOT"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Text = "YUSUF ARDA SPIN"
 Title.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Parent = MainFrame
 
-Status.Parent = MainFrame
-Status.Position = UDim2.new(0, 0, 0.7, 0)
-Status.Size = UDim2.new(1, 0, 0, 30)
-Status.Text = "Sistem Hazir"
-Status.TextColor3 = Color3.fromRGB(200, 200, 200)
-Status.BackgroundTransparency = 1
-
-StartBtn.Parent = MainFrame
-StartBtn.Position = UDim2.new(0.1, 0, 0.35, 0)
-StartBtn.Size = UDim2.new(0.8, 0, 0.3, 0)
-StartBtn.Text = "CEVIRMEYE BASLA"
+local StartBtn = Instance.new("TextButton")
+StartBtn.Size = UDim2.new(0.8, 0, 0.4, 0)
+StartBtn.Position = UDim2.new(0.1, 0, 0.3, 0)
+StartBtn.Text = "BASLAT"
 StartBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
 StartBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+StartBtn.Parent = MainFrame
 
--- LOGIC (MANTIK)
+local Status = Instance.new("TextLabel")
+Status.Size = UDim2.new(1, 0, 0, 20)
+Status.Position = UDim2.new(0, 0, 0.8, 0)
+Status.Text = "Hazir!"
+Status.BackgroundTransparency = 1
+Status.TextColor3 = Color3.fromRGB(255, 255, 255)
+Status.Parent = MainFrame
+
+-- DÖNGÜ MANTIĞI
 local running = false
-local Network = game:GetService("ReplicatedStorage"):WaitForChild("Network")
-local PlayerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
 StartBtn.MouseButton1Click:Connect(function()
     running = not running
     if running then
         StartBtn.Text = "DURDUR"
         StartBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
-        Status.Text = "Hizli Cevrim Aktif!"
         
         task.spawn(function()
             while running do
-                -- 1. Çevir komutu gönder (Spin)
-                pcall(function()
-                    Network:WaitForChild("SpinnyWheel_RequestSpin"):InvokeServer("Spinny Wheel")
-                end)
+                -- 1. SPIN (Çevir)
+                if Network then
+                    pcall(function()
+                        Network:WaitForChild("SpinnyWheel_RequestSpin"):InvokeServer("Spinny Wheel")
+                    end)
+                end
                 
-                -- 2. Menüyü anında kapat (Videodaki gibi çarpıya basma etkisi)
-                task.spawn(function()
-                    local wheelGui = PlayerGui:FindFirstChild("SpinnyWheel") or PlayerGui:FindFirstChild("SpinnyWheelGui")
-                    if wheelGui then
-                        wheelGui.Enabled = false -- Menüyü yok ederek animasyonu iptal eder
-                    end
-                end)
+                -- 2. ANIMASYON IPTAL (Kapat)
+                local wheelGui = PlayerGui:FindFirstChild("SpinnyWheel")
+                if wheelGui then wheelGui.Enabled = false end
                 
-                -- 3. OK Butonuna bas (Congratulations ekranını geç)
-                task.spawn(function()
-                    for i = 1, 10 do -- Pencere gelene kadar kısa bir süre tara
-                        local loot = PlayerGui:FindFirstChild("Lootview") or PlayerGui:FindFirstChild("Message")
-                        if loot and loot:FindFirstChild("Frame") and loot.Frame:FindFirstChild("Ok") then
-                            loot.Frame.Ok.MouseButton1Click:Fire()
-                            break
-                        end
-                        task.wait(0.05)
-                    end
-                end)
-
-                task.wait(0.25) -- Videodaki o aşırı hızlı döngü süresi
+                -- 3. OK BUTONU (Onayla)
+                local loot = PlayerGui:FindFirstChild("Lootview") or PlayerGui:FindFirstChild("Message")
+                if loot and loot:FindFirstChild("Frame") and loot.Frame:FindFirstChild("Ok") then
+                    pcall(function() loot.Frame.Ok.MouseButton1Click:Fire() end)
+                end
+                
+                Status.Text = "Hizli Cevrim..."
+                task.wait(0.2) -- Videodaki hız
             end
         end)
     else
-        StartBtn.Text = "CEVIRMEYE BASLA"
+        StartBtn.Text = "BASLAT"
         StartBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
         Status.Text = "Durduruldu."
     end
