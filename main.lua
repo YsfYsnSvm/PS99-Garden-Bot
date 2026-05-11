@@ -1,47 +1,44 @@
--- PS99 Xeno Ultra Fast & No-Fail Script
-local Player = game.Players.LocalPlayer
-local PlayerGui = Player:WaitForChild("PlayerGui")
+-- PS99 Ultra Force Script
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Network = ReplicatedStorage:WaitForChild("Network")
+local Player = game.Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
 
--- AYARLAR (Python'daki gibi milisaniye cinsinden)
-local SPIN_DELAY = 0.10 -- Spin sonrası bekleme
-local CANCEL_DELAY = 0.15 -- İptal (F/X) sonrası bekleme
+-- DURDURMAK İÇİN: _G.Durdur = true yazıp tekrar execute et
+_G.Durdur = false
 
-_G.Running = true -- Durdurmak istersen false yaparsın
-
-print("Yusuf Arda Xeno Script Baslatildi!")
+print("Yusuf Arda Force Script Yuklendi!")
 
 task.spawn(function()
-    while _G.Running do
-        -- 1. ADIM: Sunucuya "Spin At" emri gönder (Koordinat derdi yok!)
-        local rf = Network:FindFirstChild("SpinnyWheel_RequestSpin")
-        if rf then
-            task.spawn(function() rf:InvokeServer("Spinny Wheel") end)
-        end
+    while task.wait(0.1) do -- Hız ayarı (0.1 = Saniyede 10 deneme)
+        if _G.Durdur then break end
         
-        task.wait(SPIN_DELAY)
-        
-        -- 2. ADIM: Menüleri ve Animasyonları Saniyede 20 Kez Kapat (Spam)
-        task.spawn(function()
-            -- Çark Menüsü (X basma efektini simüle eder)
-            local sw = PlayerGui:FindFirstChild("SpinnyWheel")
-            if sw then sw.Enabled = false end
-            
-            -- Ödül Ekranı (OK butonunu otomatik onaylar)
-            local lv = PlayerGui:FindFirstChild("Lootview")
-            if lv and lv:FindFirstChild("Frame") and lv.Frame:FindFirstChild("Ok") then
-                -- Butona basma sinyali gönderir
-                local okBtn = lv.Frame.Ok
-                for i = 1, 5 do -- 5 kez spamla
-                    okBtn.MouseButton1Click:Fire()
+        -- 1. ADIM: SPIN AT (Sinyali direkt gönder)
+        pcall(function()
+            Network.SpinnyWheel_RequestSpin:InvokeServer("Spinny Wheel")
+        end)
+
+        -- 2. ADIM: EKRANDAKİ TÜM UI'LARI TEMİZLE (Spam)
+        -- Bu döngü ekrandaki "Ok" butonlarını bulur ve tıklar
+        for _, v in pairs(PlayerGui:GetDescendants()) do
+            if v:IsA("TextButton") and (v.Text == "Ok" or v.Name == "Ok") then
+                -- Butona basma sinyalini 3 kez spamla
+                for i = 1, 3 do
+                    v.MouseButton1Click:Fire()
                 end
             end
-        end)
+        end
+
+        -- 3. ADIM: MENÜYÜ GÖRÜNMEZ YAP (Hız kazandırır)
+        local sw = PlayerGui:FindFirstChild("SpinnyWheel")
+        if sw then 
+            sw.Enabled = false 
+        end
         
-        task.wait(CANCEL_DELAY)
-        
-        -- 3. ADIM: Bir sonraki tur için kısa es
-        task.wait(0.5) 
+        -- Ekstra: LootView (Ödül ekranı) takılırsa onu da gizle
+        local lv = PlayerGui:FindFirstChild("Lootview")
+        if lv then 
+            lv.Enabled = false 
+        end
     end
 end)
